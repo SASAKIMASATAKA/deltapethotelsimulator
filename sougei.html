@@ -1,0 +1,82 @@
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><style>
+    body { font-family: Arial; padding: 2em; }
+    input { padding: 0.5em; width: 300px; margin-bottom: 1em; display: block; }
+    button { padding: 0.5em 1em; }
+    #result { margin-top: 1em; font-weight: bold; }
+  </style></p>
+<h2>送迎料金計算ツール</h2>
+＊表示される料金は往復です。片道利用の場合は半額になります。
+<p><label>ご自宅の住所：</label> <input id="address" type="text" placeholder="例：川崎市中原区○○" /> <label>送迎以外の料金：</label> <input id="otherCharges" type="number" placeholder="例：8800（円）" /> <button id="calculateBtn">料金を計算</button></p>
+<p id="result"></p>
+<!-- Google Maps JavaScript API -->
+<p><script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAh0FFuQ5-0GXgNqSscu76R6Z-7pWUQijc&libraries=places"></script> <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const storeAddress = "神奈川県川崎市幸区小倉5-28-5";
+
+      document.getElementById("calculateBtn").addEventListener("click", function () {
+        getDistance();
+      });
+
+      function calculatePrice(distanceMeters) {
+        const units = Math.ceil(distanceMeters / 500);
+        return units * 500;
+      }
+
+      function calculateDiscount(otherCharges) {
+        if (otherCharges <= 5000) return 0;
+        const steps = Math.floor((otherCharges - 5000) / 5000);
+        return 2500 + steps * 500;
+      }
+
+      function getDistance() {
+        const customerAddress = document.getElementById("address").value;
+        const otherCharges = parseInt(document.getElementById("otherCharges").value || "0", 10);
+
+        if (!customerAddress) {
+          document.getElementById("result").textContent = "住所を入力してください。";
+          return;
+        }
+
+        const service = new google.maps.DistanceMatrixService();
+
+        service.getDistanceMatrix(
+          {
+            origins: [customerAddress],
+            destinations: [storeAddress],
+            travelMode: 'DRIVING',
+            unitSystem: google.maps.UnitSystem.METRIC,
+          },
+          function (response, status) {
+            if (status !== 'OK') {
+              alert("エラーが発生しました: " + status);
+              return;
+            }
+
+            const element = response.rows[0].elements[0];
+            if (element.status === "OK") {
+              const distance = element.distance.value; // meters
+              const duration = element.duration.text;
+              const rawPrice = calculatePrice(distance);
+              const discount = calculateDiscount(otherCharges);
+              let finalPrice = rawPrice - discount;
+
+              let annotation = "";
+              if (finalPrice < 500) {
+                finalPrice = 500;
+                annotation = "＊最低料金500円";
+              }
+
+              const km = (distance / 1000).toFixed(2);
+
+              document.getElementById("result").textContent =
+                `距離：約 ${km} km（所要時間 ${duration}）｜送迎料金：${finalPrice}円（割引前：${rawPrice}円、割引：${discount}円）${annotation ? "｜" + annotation : ""}`;
+            } else {
+              document.getElementById("result").textContent = "距離を取得できませんでした。住所をご確認ください。";
+            }
+          }
+        );
+      }
+    });
+  </script></p>
